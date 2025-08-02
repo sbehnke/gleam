@@ -747,6 +747,11 @@ impl<'a, 'b> PatternTyper<'a, 'b> {
                 Pattern::String { location, value }
             }
 
+            Pattern::MultilineString { location, value } => {
+                self.unify_types(type_, string(), location);
+                Pattern::MultilineString { location, value }
+            }
+
             Pattern::List {
                 location,
                 elements,

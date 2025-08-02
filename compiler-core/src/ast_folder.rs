@@ -257,6 +257,7 @@ pub trait UntypedExprFolder: TypeAstFolder + UntypedConstantFolder + PatternFold
             } => self.fold_int(location, value, int_value),
             UntypedExpr::Float { location, value } => self.fold_float(location, value),
             UntypedExpr::String { location, value } => self.fold_string(location, value),
+            UntypedExpr::MultilineString { location, value } => self.fold_multiline_string(location, value),
 
             UntypedExpr::Block {
                 location,
@@ -361,6 +362,7 @@ pub trait UntypedExprFolder: TypeAstFolder + UntypedConstantFolder + PatternFold
             | UntypedExpr::Var { .. }
             | UntypedExpr::Float { .. }
             | UntypedExpr::String { .. }
+            | UntypedExpr::MultilineString { .. }
             | UntypedExpr::NegateInt { .. }
             | UntypedExpr::NegateBool { .. }
             | UntypedExpr::Placeholder { .. } => expression,
@@ -722,6 +724,10 @@ pub trait UntypedExprFolder: TypeAstFolder + UntypedConstantFolder + PatternFold
         UntypedExpr::String { location, value }
     }
 
+    fn fold_multiline_string(&mut self, location: SrcSpan, value: EcoString) -> UntypedExpr {
+        UntypedExpr::MultilineString { location, value }
+    }
+
     fn fold_block(&mut self, location: SrcSpan, statements: Vec1<UntypedStatement>) -> UntypedExpr {
         UntypedExpr::Block {
             location,
@@ -945,6 +951,8 @@ pub trait UntypedConstantFolder {
 
             Constant::String { location, value } => self.fold_constant_string(location, value),
 
+            Constant::MultilineString { location, value } => self.fold_constant_string(location, value),
+
             Constant::Tuple { location, elements } => self.fold_constant_tuple(location, elements),
 
             Constant::List {
@@ -1099,6 +1107,7 @@ pub trait UntypedConstantFolder {
             | Constant::Int { .. }
             | Constant::Float { .. }
             | Constant::String { .. }
+            | Constant::MultilineString { .. }
             | Constant::Tuple { .. }
             | Constant::Invalid { .. } => constant,
 
@@ -1196,6 +1205,8 @@ pub trait PatternFolder {
 
             Pattern::String { location, value } => self.fold_pattern_string(location, value),
 
+            Pattern::MultilineString { location, value } => self.fold_pattern_multiline_string(location, value),
+
             Pattern::Variable {
                 location,
                 name,
@@ -1287,6 +1298,10 @@ pub trait PatternFolder {
 
     fn fold_pattern_string(&mut self, location: SrcSpan, value: EcoString) -> UntypedPattern {
         Pattern::String { location, value }
+    }
+
+    fn fold_pattern_multiline_string(&mut self, location: SrcSpan, value: EcoString) -> UntypedPattern {
+        Pattern::MultilineString { location, value }
     }
 
     fn fold_pattern_var(
@@ -1466,6 +1481,7 @@ pub trait PatternFolder {
             | Pattern::Variable { .. }
             | Pattern::Float { .. }
             | Pattern::String { .. }
+            | Pattern::MultilineString { .. }
             | Pattern::Discard { .. }
             | Pattern::BitArraySize { .. }
             | Pattern::StringPrefix { .. }

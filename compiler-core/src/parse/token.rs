@@ -11,6 +11,7 @@ pub enum Token {
     Int { value: EcoString, int_value: BigInt },
     Float { value: EcoString },
     String { value: EcoString },
+    MultilineString { value: EcoString },
     CommentDoc { content: EcoString },
     // Groupings
     LeftParen,   // (
@@ -146,6 +147,7 @@ impl Token {
             | Token::Int { .. }
             | Token::Float { .. }
             | Token::String { .. }
+            | Token::MultilineString { .. }
             | Token::CommentDoc { .. }
             | Token::LeftParen
             | Token::RightParen
@@ -209,6 +211,7 @@ impl fmt::Display for Token {
             }
             | Token::Float { value }
             | Token::String { value } => value.as_str(),
+            | Token::MultilineString { value } => value.as_str(),
             Token::AmperAmper => "&&",
             Token::As => "as",
             Token::Assert => "assert",

@@ -1463,6 +1463,7 @@ fn const_inline<'a>(literal: &'a TypedConstant, env: &mut Env<'a>) -> Document<'
         Constant::Int { value, .. } => int(value),
         Constant::Float { value, .. } => float(value),
         Constant::String { value, .. } => string(value),
+        Constant::MultilineString { value, .. } => string(value),
         Constant::Tuple { elements, .. } => {
             tuple(elements.iter().map(|element| const_inline(element, env)))
         }
@@ -2008,6 +2009,7 @@ fn needs_begin_end_wrapping(expression: &TypedExpr) -> bool {
         TypedExpr::Int { .. }
         | TypedExpr::Float { .. }
         | TypedExpr::String { .. }
+        | TypedExpr::MultilineString { .. }
         | TypedExpr::Var { .. }
         | TypedExpr::Fn { .. }
         | TypedExpr::List { .. }
@@ -2134,6 +2136,7 @@ fn expr<'a>(expression: &'a TypedExpr, env: &mut Env<'a>) -> Document<'a> {
         TypedExpr::Int { value, .. } => int(value),
         TypedExpr::Float { value, .. } => float(value),
         TypedExpr::String { value, .. } => string(value),
+        TypedExpr::MultilineString { value, .. } => string(value),
 
         TypedExpr::Pipeline {
             first_value,
@@ -3184,6 +3187,7 @@ fn find_referenced_private_functions(
         Constant::Int { .. }
         | Constant::Float { .. }
         | Constant::String { .. }
+        | Constant::MultilineString { .. }
         | Constant::BitArray { .. } => (),
 
         TypedConstant::Var {

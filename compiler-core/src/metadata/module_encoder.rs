@@ -494,6 +494,7 @@ impl<'a> ModuleEncoder<'a> {
             Constant::Int { value, .. } => builder.set_int(value),
             Constant::Float { value, .. } => builder.set_float(value),
             Constant::String { value, .. } => builder.set_string(value),
+            Constant::MultilineString { value, .. } => builder.set_string(value),
 
             Constant::Tuple { elements, .. } => {
                 self.build_constants(builder.init_tuple(elements.len() as u32), elements)

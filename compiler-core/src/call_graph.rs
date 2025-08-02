@@ -180,6 +180,7 @@ impl<'a> CallGraphBuilder<'a> {
             UntypedExpr::Int { .. }
             | UntypedExpr::Float { .. }
             | UntypedExpr::String { .. }
+            | UntypedExpr::MultilineString { .. }
             | UntypedExpr::Placeholder { .. } => (),
 
             UntypedExpr::Todo { message, .. } => {
@@ -328,6 +329,7 @@ impl<'a> CallGraphBuilder<'a> {
             | Pattern::Int { .. }
             | Pattern::Float { .. }
             | Pattern::String { .. }
+            | Pattern::MultilineString { .. }
             | Pattern::StringPrefix {
                 right_side_assignment: AssignName::Discard(_),
                 ..
@@ -476,6 +478,7 @@ impl<'a> CallGraphBuilder<'a> {
             Constant::Int { .. }
             | Constant::Float { .. }
             | Constant::String { .. }
+            | Constant::MultilineString { .. }
             | Constant::Invalid { .. }
             | Constant::Var {
                 module: Some(_), ..

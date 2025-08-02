@@ -500,6 +500,13 @@ where
                     value,
                 }
             }
+            Some((start, Token::MultilineString { value }, end)) => {
+                self.advance();
+                UntypedExpr::MultilineString {
+                    location: SrcSpan { start, end },
+                    value,
+                }
+            }
             Some((start, Token::Int { value, int_value }, end)) => {
                 self.advance();
                 UntypedExpr::Int {
@@ -1362,6 +1369,83 @@ where
                     },
                 }
             }
+            Some((start, Token::MultilineString { value }, end)) => {
+                self.advance();
+
+                match self.tok0 {
+                    // String matching with assignment, it could either be a
+                    // String prefix matching: "Hello, " as greeting <> name -> ...
+                    // or a full string matching: "Hello, World!" as greeting -> ...
+                    Some((_, Token::As, _)) => {
+                        self.advance();
+                        let (name_start, name, name_end) = self.expect_name()?;
+                        let name_span = SrcSpan {
+                            start: name_start,
+                            end: name_end,
+                        };
+
+                        match self.tok0 {
+                            // String prefix matching with assignment
+                            // "Hello, " as greeting <> name -> ...
+                            Some((_, Token::LtGt, _)) => {
+                                self.advance();
+                                let (r_start, right, r_end) = self.expect_assign_name()?;
+                                Pattern::StringPrefix {
+                                    location: SrcSpan { start, end: r_end },
+                                    left_location: SrcSpan {
+                                        start,
+                                        end: name_end,
+                                    },
+                                    right_location: SrcSpan {
+                                        start: r_start,
+                                        end: r_end,
+                                    },
+                                    left_side_string: value,
+                                    left_side_assignment: Some((name, name_span)),
+                                    right_side_assignment: right,
+                                }
+                            }
+                            // Full string matching with assignment
+                            _ => {
+                                return Ok(Some(Pattern::Assign {
+                                    name,
+                                    location: name_span,
+                                    pattern: Box::new(Pattern::MultilineString {
+                                        location: SrcSpan { start, end },
+                                        value,
+                                    }),
+                                }));
+                            }
+                        }
+                    }
+
+                    // String prefix matching with no left side assignment
+                    // "Hello, " <> name -> ...
+                    Some((_, Token::LtGt, _)) => {
+                        self.advance();
+                        let (r_start, right, r_end) = self.expect_assign_name()?;
+                        Pattern::StringPrefix {
+                            location: SrcSpan { start, end: r_end },
+                            left_location: SrcSpan { start, end },
+                            right_location: SrcSpan {
+                                start: r_start,
+                                end: r_end,
+                            },
+                            left_side_string: value,
+                            left_side_assignment: None,
+                            right_side_assignment: right,
+                        }
+                    }
+
+                    // Full string matching
+                    // "Hello, World!" -> ...
+                    _ => Pattern::String {
+                        location: SrcSpan { start, end },
+                        value,
+                    },
+                }
+            }
+
             Some((start, Token::Int { value, int_value }, end)) => {
                 self.advance();
                 Pattern::Int {
@@ -3002,6 +3086,14 @@ where
                 }))
             }
 
+            Some((start, Token::MultilineString { value }, end)) => {
+                self.advance();
+                Ok(Some(Constant::MultilineString {
+                    value,
+                    location: SrcSpan { start, end },
+                }))
+            }
+
             Some((start, Token::Float { value }, end)) => {
                 self.advance();
                 Ok(Some(Constant::Float {
@@ -3753,6 +3845,7 @@ functions are declared separately from types.";
     fn expect_string(&mut self) -> Result<(u32, EcoString, u32), ParseError> {
         match self.next_tok() {
             Some((start, Token::String { value }, end)) => Ok((start, value, end)),
+            Some((start, Token::MultilineString { value }, end)) => Ok((start, value, end)),
             _ => self.next_tok_unexpected(vec!["a string".into()]),
         }
     }

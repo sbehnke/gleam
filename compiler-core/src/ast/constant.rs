@@ -23,6 +23,11 @@ pub enum Constant<T, RecordTag> {
         value: EcoString,
     },
 
+    MultilineString {
+        location: SrcSpan,
+        value: EcoString,
+    },
+
     Tuple {
         location: SrcSpan,
         elements: Vec<Self>,
@@ -77,7 +82,7 @@ impl TypedConstant {
         match self {
             Constant::Int { .. } => type_::int(),
             Constant::Float { .. } => type_::float(),
-            Constant::String { .. } | Constant::StringConcatenation { .. } => type_::string(),
+            Constant::String { .. } | Constant::MultilineString { .. } | Constant::StringConcatenation { .. } => type_::string(),
             Constant::BitArray { .. } => type_::bit_array(),
             Constant::Tuple { elements, .. } => {
                 type_::tuple(elements.iter().map(|element| element.type_()).collect())
@@ -97,6 +102,7 @@ impl TypedConstant {
             Constant::Int { .. }
             | Constant::Float { .. }
             | Constant::String { .. }
+            | Constant::MultilineString { .. }
             | Constant::Var { .. }
             | Constant::Invalid { .. } => Located::Constant(self),
             Constant::Tuple { elements, .. } | Constant::List { elements, .. } => elements
@@ -123,6 +129,7 @@ impl TypedConstant {
             Constant::Int { .. }
             | Constant::Float { .. }
             | Constant::String { .. }
+            | Constant::MultilineString { .. }
             | Constant::Tuple { .. }
             | Constant::List { .. }
             | Constant::BitArray { .. }
@@ -148,7 +155,8 @@ impl TypedConstant {
             Constant::Invalid { .. }
             | Constant::Int { .. }
             | Constant::Float { .. }
-            | Constant::String { .. } => im::hashset![],
+            | Constant::String { .. }
+            | Constant::MultilineString { .. } => im::hashset![],
 
             Constant::List { elements, .. } | Constant::Tuple { elements, .. } => elements
                 .iter()
@@ -192,6 +200,7 @@ impl<A, B> Constant<A, B> {
             | Constant::Float { location, .. }
             | Constant::Tuple { location, .. }
             | Constant::String { location, .. }
+            | Constant::MultilineString { location, .. }
             | Constant::Record { location, .. }
             | Constant::BitArray { location, .. }
             | Constant::Var { location, .. }
@@ -206,6 +215,7 @@ impl<A, B> Constant<A, B> {
             Constant::Int { .. }
             | Constant::Float { .. }
             | Constant::String { .. }
+            | Constant::MultilineString { .. }
             | Constant::Var { .. } => true,
 
             Constant::Tuple { .. }

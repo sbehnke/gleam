@@ -20,6 +20,11 @@ pub enum UntypedExpr {
         value: EcoString,
     },
 
+    MultilineString {
+        location: SrcSpan,
+        value: EcoString,
+    },
+
     Block {
         location: SrcSpan,
         statements: Vec1<UntypedStatement>,
@@ -176,6 +181,7 @@ impl UntypedExpr {
             | Self::Tuple { location, .. }
             | Self::Panic { location, .. }
             | Self::String { location, .. }
+            | Self::MultilineString { location, .. }
             | Self::BitArray { location, .. }
             | Self::NegateInt { location, .. }
             | Self::NegateBool { location, .. }
@@ -214,6 +220,7 @@ impl UntypedExpr {
             UntypedExpr::Int { .. }
             | UntypedExpr::Float { .. }
             | UntypedExpr::String { .. }
+            | UntypedExpr::MultilineString { .. }
             | UntypedExpr::Var { .. } => true,
 
             UntypedExpr::NegateBool { value, .. }

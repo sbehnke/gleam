@@ -1705,6 +1705,15 @@ fn pattern_and_expression_are_the_same(pattern: &TypedPattern, expression: &Type
         ) => pattern_value == value,
         (TypedPattern::String { .. }, _) => false,
 
+        (
+            TypedPattern::MultilineString {
+                value: pattern_value,
+                ..
+            },
+            TypedExpr::MultilineString { value, .. },
+        ) => pattern_value == value,
+        (TypedPattern::MultilineString { .. }, _) => false,
+
         // A string prefix is equivalent to building the string back:
         // `"wibble" <> wobble -> "wibble" <> wobble`
         // `"wibble" as a <> wobble -> a <> wobble`
@@ -2286,6 +2295,11 @@ pub enum Pattern<Type> {
         value: EcoString,
     },
 
+    MultilineString {
+        location: SrcSpan,
+        value: EcoString,
+    },
+
     /// The creation of a variable.
     /// e.g. `assert [this_is_a_var, .._] = x`
     Variable {
@@ -2488,6 +2502,7 @@ impl<A> Pattern<A> {
             | Pattern::Float { location, .. }
             | Pattern::Discard { location, .. }
             | Pattern::String { location, .. }
+            | Pattern::MultilineString { location, .. }
             | Pattern::Tuple { location, .. }
             | Pattern::Constructor { location, .. }
             | Pattern::StringPrefix { location, .. }
@@ -2525,6 +2540,7 @@ impl TypedPattern {
             Pattern::Int { .. }
             | Pattern::Float { .. }
             | Pattern::String { .. }
+            | Pattern::MultilineString { .. }
             | Pattern::Variable { .. }
             | Pattern::BitArraySize { .. }
             | Pattern::Assign { .. }
@@ -2544,6 +2560,7 @@ impl TypedPattern {
             Pattern::Int { .. }
             | Pattern::Float { .. }
             | Pattern::String { .. }
+            | Pattern::MultilineString { .. }
             | Pattern::Variable { .. }
             | Pattern::BitArraySize { .. }
             | Pattern::Assign { .. }
@@ -2563,6 +2580,7 @@ impl TypedPattern {
             Pattern::Int { .. } => type_::int(),
             Pattern::Float { .. } => type_::float(),
             Pattern::String { .. } => type_::string(),
+            Pattern::MultilineString { .. } => type_::string(),
             Pattern::BitArray { .. } => type_::bit_array(),
             Pattern::StringPrefix { .. } => type_::string(),
 
@@ -2600,6 +2618,7 @@ impl TypedPattern {
             Pattern::Int { .. }
             | Pattern::Float { .. }
             | Pattern::String { .. }
+            | Pattern::MultilineString { .. }
             | Pattern::Variable { .. }
             | Pattern::BitArraySize { .. }
             | Pattern::Assign { .. }
@@ -2684,6 +2703,7 @@ impl TypedPattern {
             Pattern::Int { .. }
             | Pattern::Float { .. }
             | Pattern::String { .. }
+            | Pattern::MultilineString { .. }
             | Pattern::BitArraySize { .. }
             | Pattern::List { .. }
             | Pattern::Constructor { .. }
@@ -2704,6 +2724,7 @@ impl TypedPattern {
             Pattern::Int { .. }
             | Pattern::Float { .. }
             | Pattern::String { .. }
+            | Pattern::MultilineString { .. }
             | Pattern::Discard { .. }
             | Pattern::Invalid { .. } => {}
 
@@ -2861,6 +2882,7 @@ impl<Type> BitArraySegment<Pattern<Type>, Type> {
             Pattern::Int { .. }
             | Pattern::Float { .. }
             | Pattern::String { .. }
+            | Pattern::MultilineString { .. }
             | Pattern::Variable { .. }
             | Pattern::BitArraySize { .. }
             | Pattern::Discard { .. }

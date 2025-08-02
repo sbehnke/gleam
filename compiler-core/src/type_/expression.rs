@@ -476,6 +476,10 @@ impl<'a, 'b> ExprTyper<'a, 'b> {
                 location, value, ..
             } => Ok(self.infer_string(value, location)),
 
+            UntypedExpr::MultilineString {
+                location, value, ..
+            } => Ok(self.infer_multiline_string(value, location)),
+
             UntypedExpr::PipeLine { expressions } => Ok(self.infer_pipeline(expressions)),
 
             UntypedExpr::Fn {
@@ -669,6 +673,14 @@ impl<'a, 'b> ExprTyper<'a, 'b> {
 
     fn infer_string(&mut self, value: EcoString, location: SrcSpan) -> TypedExpr {
         TypedExpr::String {
+            location,
+            value,
+            type_: string(),
+        }
+    }
+
+    fn infer_multiline_string(&mut self, value: EcoString, location: SrcSpan) -> TypedExpr {
+        TypedExpr::MultilineString {
             location,
             value,
             type_: string(),
@@ -3564,6 +3576,10 @@ impl<'a, 'b> ExprTyper<'a, 'b> {
                 location, value, ..
             } => Ok(Constant::String { location, value }),
 
+            Constant::MultilineString {
+                location, value, ..
+            } => Ok(Constant::MultilineString { location, value }),
+
             Constant::Tuple {
                 elements, location, ..
             } => self.infer_const_tuple(elements, location),
@@ -4757,6 +4773,7 @@ impl UseAssignments {
                 pattern @ (Pattern::Int { .. }
                 | Pattern::Float { .. }
                 | Pattern::String { .. }
+                | Pattern::MultilineString { .. }
                 | Pattern::BitArraySize { .. }
                 | Pattern::Assign { .. }
                 | Pattern::List { .. }

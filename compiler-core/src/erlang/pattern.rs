@@ -55,6 +55,8 @@ fn print<'a>(
 
         Pattern::String { value, .. } => string(value),
 
+        Pattern::MultilineString { value, .. } => string(value),
+
         Pattern::Constructor {
             arguments,
             constructor: Inferred::Known(PatternConstructor { name, .. }),

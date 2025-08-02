@@ -226,6 +226,41 @@ fn find_node_todo_with_string() {
 }
 
 #[test]
+fn find_node_todo_with_multiline_string() {
+    let statement = compile_expression(r#" todo as """ok""" "#);
+    let expr = get_bare_expression(&statement);
+    let message = TypedExpr::MultilineString {
+        location: SrcSpan { start: 9, end: 17 },
+        type_: type_::string(),
+        value: "ok".into(),
+    };
+
+    assert_eq!(expr.find_node(0), None);
+    assert_eq!(
+        expr.find_node(1),
+        Some(Located::Expression {
+            expression: expr,
+            position: ExpressionPosition::Expression
+        })
+    );
+    assert_eq!(
+        expr.find_node(16),
+        Some(Located::Expression {
+            expression: &message,
+            position: ExpressionPosition::Expression
+        })
+    );
+    assert_eq!(
+        expr.find_node(17),
+        Some(Located::Expression {
+            expression: &message,
+            position: ExpressionPosition::Expression
+        })
+    );
+    assert_eq!(expr.find_node(18), None);
+}
+
+#[test]
 fn find_node_string() {
     let statement = compile_expression(r#" "ok" "#);
     let expr = get_bare_expression(&statement);
@@ -252,6 +287,35 @@ fn find_node_string() {
         })
     );
     assert_eq!(expr.find_node(6), None);
+}
+
+#[test]
+fn find_node_multiline_string() {
+    let statement = compile_expression(r#" """ok""" "#);
+    let expr = get_bare_expression(&statement);
+    assert_eq!(expr.find_node(0), None);
+    assert_eq!(
+        expr.find_node(1),
+        Some(Located::Expression {
+            expression: expr,
+            position: ExpressionPosition::Expression
+        })
+    );
+    assert_eq!(
+        expr.find_node(4),
+        Some(Located::Expression {
+            expression: expr,
+            position: ExpressionPosition::Expression
+        })
+    );
+    assert_eq!(
+        expr.find_node(5),
+        Some(Located::Expression {
+            expression: expr,
+            position: ExpressionPosition::Expression
+        })
+    );
+    assert_eq!(expr.find_node(10), None);
 }
 
 #[test]

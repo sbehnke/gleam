@@ -2995,6 +2995,7 @@ impl<'ast> ast::visit::Visit<'ast> for ExtractVariable<'ast> {
             TypedExpr::Int { location, .. }
             | TypedExpr::Float { location, .. }
             | TypedExpr::String { location, .. }
+            | TypedExpr::MultilineString { location, .. }
             | TypedExpr::Pipeline { location, .. }
             | TypedExpr::Fn { location, .. }
             | TypedExpr::Todo { location, .. }
@@ -3274,7 +3275,7 @@ fn can_be_constant(
             .all(|element| can_be_constant(module, element, Some(mc))),
 
         // Extract literals directly
-        TypedExpr::Int { .. } | TypedExpr::Float { .. } | TypedExpr::String { .. } => true,
+        TypedExpr::Int { .. } | TypedExpr::Float { .. } | TypedExpr::String { .. } | TypedExpr::MultilineString { .. } => true,
 
         // Extract non-record types directly
         TypedExpr::Var {
@@ -3503,7 +3504,8 @@ impl<'ast> ast::visit::Visit<'ast> for ExtractConstant<'ast> {
                 TypedExpr::Var { .. }
                 | TypedExpr::Int { .. }
                 | TypedExpr::Float { .. }
-                | TypedExpr::String { .. } => Some(ExtractableToConstant::SingleValue),
+                | TypedExpr::String { .. }
+                | TypedExpr::MultilineString { .. } => Some(ExtractableToConstant::SingleValue),
 
                 TypedExpr::List { .. }
                 | TypedExpr::Tuple { .. }
@@ -6977,6 +6979,7 @@ impl<'ast> ast::visit::Visit<'ast> for WrapInBlock<'ast> {
             | TypedExpr::Int { .. }
             | TypedExpr::Float { .. }
             | TypedExpr::String { .. }
+            | TypedExpr::MultilineString { .. }
             | TypedExpr::Pipeline { .. }
             | TypedExpr::Var { .. }
             | TypedExpr::Fn { .. }
@@ -7467,6 +7470,7 @@ impl<'ast> ast::visit::Visit<'ast> for RemoveBlock<'ast> {
                     TypedExpr::Int { .. }
                     | TypedExpr::Float { .. }
                     | TypedExpr::String { .. }
+                    | TypedExpr::MultilineString { .. }
                     | TypedExpr::Block { .. }
                     | TypedExpr::Var { .. }
                     | TypedExpr::Fn { .. }

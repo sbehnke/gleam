@@ -2041,6 +2041,25 @@ World"
 }
 "#
     );
+
+    assert_format!(
+        r#"fn main() {
+  let a =
+    """
+  Hello "world"
+  """
+}
+"#
+    );
+
+    assert_format!(
+        r#"fn main() {
+  """
+  Hello "world"
+  """
+}
+"#
+    );
 }
 #[test]
 fn expr_seq() {

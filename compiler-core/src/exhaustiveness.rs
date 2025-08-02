@@ -2824,6 +2824,11 @@ impl CaseToCompile {
                 self.insert(Pattern::String { value })
             }
 
+            TypedPattern::MultilineString { value, .. } => {
+                let value = value.clone();
+                self.insert(Pattern::String { value })
+            }
+
             TypedPattern::Variable { name, .. } => {
                 let name = name.clone();
                 self.insert(Pattern::Variable { name })

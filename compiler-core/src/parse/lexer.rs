@@ -13,8 +13,10 @@ pub struct Lexer<T: Iterator<Item = (u32, char)>> {
     pending: Vec<Spanned>,
     chr0: Option<char>,
     chr1: Option<char>,
+    chr2: Option<char>,
     loc0: u32,
     loc1: u32,
+    loc2: u32,
 }
 pub type Spanned = (u32, Token, u32);
 pub type LexResult = Result<Spanned, LexicalError>;
@@ -120,9 +122,12 @@ where
             pending: Vec::new(),
             chr0: None,
             chr1: None,
+            chr2: None,
             loc0: 0,
             loc1: 0,
+            loc2: 0,
         };
+        let _ = lxr.next_char();
         let _ = lxr.next_char();
         let _ = lxr.next_char();
         lxr
@@ -179,8 +184,13 @@ where
                 self.eat_single_char(Token::At);
             }
             '"' => {
-                let string = self.lex_string()?;
-                self.emit(string);
+                if self.chr1 == Some('"') && self.chr2 == Some('"') {
+                    let string = self.lex_multiline_string()?;
+                    self.emit(string);
+                } else {
+                    let string = self.lex_string()?;
+                    self.emit(string);
+                }
             }
             '=' => {
                 let tok_start = self.get_pos();
@@ -735,158 +745,249 @@ where
         (start_pos, token, end_pos)
     }
 
-    fn lex_string(&mut self) -> LexResult {
-        let start_pos = self.get_pos();
-        // advance past the first quote
-        let _ = self.next_char();
-        let mut string_content = String::new();
+     fn lex_unicode_escape(&mut self, slash_pos: u32) -> Result<String, LexicalError> {
+            let _ = self.next_char(); // consume 'u'
 
-        loop {
-            match self.next_char() {
-                Some('\\') => {
-                    let slash_pos = self.get_pos() - 1;
-                    if let Some(c) = self.chr0 {
-                        match c {
-                            'f' | 'n' | 'r' | 't' | '"' | '\\' => {
-                                let _ = self.next_char();
-                                string_content.push('\\');
-                                string_content.push(c);
-                            }
-                            'u' => {
-                                let _ = self.next_char();
+            if self.chr0 != Some('{') {
+                return Err(LexicalError {
+                    error: LexicalErrorType::InvalidUnicodeEscape(
+                        InvalidUnicodeEscapeError::MissingOpeningBrace,
+                    ),
+                    location: SrcSpan {
+                        start: self.get_pos() - 1,
+                        end: self.get_pos(),
+                    },
+                });
+            }
 
-                                if self.chr0 != Some('{') {
-                                    return Err(LexicalError {
-                                        error: LexicalErrorType::InvalidUnicodeEscape(
-                                            InvalidUnicodeEscapeError::MissingOpeningBrace,
-                                        ),
-                                        location: SrcSpan {
-                                            start: self.get_pos() - 1,
-                                            end: self.get_pos(),
-                                        },
-                                    });
-                                }
+            // All digits inside \u{...}.
+            let mut hex_digits = String::new();
 
-                                // All digits inside \u{...}.
-                                let mut hex_digits = String::new();
+            loop {
+                let _ = self.next_char();
 
-                                loop {
-                                    let _ = self.next_char();
+                let Some(chr) = self.chr0 else {
+                    break;
+                };
 
-                                    let Some(chr) = self.chr0 else {
-                                        break;
-                                    };
-
-                                    // Don't break early when we've reached 6 digits to ensure a
-                                    // useful error message
-                                    if chr == '}' {
-                                        break;
-                                    }
-
-                                    hex_digits.push(chr);
-
-                                    if !chr.is_ascii_hexdigit() {
-                                        return Err(LexicalError {
-                                            error: LexicalErrorType::InvalidUnicodeEscape(
-                                                InvalidUnicodeEscapeError::ExpectedHexDigitOrCloseBrace,
-                                            ),
-                                            location: SrcSpan {
-                                                start: self.get_pos(),
-                                                end: self.get_pos() + 1,
-                                            },
-                                        });
-                                    }
-                                }
-
-                                if self.chr0 != Some('}') {
-                                    return Err(LexicalError {
-                                        error: LexicalErrorType::InvalidUnicodeEscape(
-                                            InvalidUnicodeEscapeError::ExpectedHexDigitOrCloseBrace,
-                                        ),
-                                        location: SrcSpan {
-                                            start: self.get_pos() - 1,
-                                            end: self.get_pos(),
-                                        },
-                                    });
-                                }
-
-                                let _ = self.next_char();
-
-                                if !(1..=6).contains(&hex_digits.len()) {
-                                    return Err(LexicalError {
-                                        error: LexicalErrorType::InvalidUnicodeEscape(
-                                            InvalidUnicodeEscapeError::InvalidNumberOfHexDigits,
-                                        ),
-                                        location: SrcSpan {
-                                            start: slash_pos,
-                                            end: self.get_pos(),
-                                        },
-                                    });
-                                }
-
-                                // Checks for i >= 0x110000 || (i >= 0xD800 && i < 0xE000),
-                                // where i is the unicode codepoint.
-                                if char::from_u32(u32::from_str_radix(&hex_digits, 16).expect(
-                                    "Cannot parse codepoint number in Unicode escape sequence",
-                                ))
-                                .is_none()
-                                {
-                                    return Err(LexicalError {
-                                        error: LexicalErrorType::InvalidUnicodeEscape(
-                                            InvalidUnicodeEscapeError::InvalidCodepoint,
-                                        ),
-                                        location: SrcSpan {
-                                            start: slash_pos,
-                                            end: self.get_pos(),
-                                        },
-                                    });
-                                }
-
-                                string_content.push_str("\\u{");
-                                string_content.push_str(&hex_digits);
-                                string_content.push('}');
-                            }
-                            _ => {
-                                return Err(LexicalError {
-                                    error: LexicalErrorType::BadStringEscape,
-                                    location: SrcSpan {
-                                        start: slash_pos,
-                                        end: slash_pos + 1,
-                                    },
-                                });
-                            }
-                        }
-                    } else {
-                        return Err(LexicalError {
-                            error: LexicalErrorType::BadStringEscape,
-                            location: SrcSpan {
-                                start: slash_pos,
-                                end: slash_pos,
-                            },
-                        });
-                    }
+                // Don't break early when we've reached 6 digits to ensure a
+                // useful error message
+                if chr == '}' {
+                    break;
                 }
-                Some('"') => break,
-                Some(c) => string_content.push(c),
-                None => {
+
+                hex_digits.push(chr);
+
+                if !chr.is_ascii_hexdigit() {
                     return Err(LexicalError {
-                        error: LexicalErrorType::UnexpectedStringEnd,
+                        error: LexicalErrorType::InvalidUnicodeEscape(
+                            InvalidUnicodeEscapeError::ExpectedHexDigitOrCloseBrace,
+                        ),
                         location: SrcSpan {
-                            start: start_pos,
-                            end: start_pos,
+                            start: self.get_pos(),
+                            end: self.get_pos() + 1,
                         },
                     });
                 }
             }
+
+            if self.chr0 != Some('}') {
+                return Err(LexicalError {
+                    error: LexicalErrorType::InvalidUnicodeEscape(
+                        InvalidUnicodeEscapeError::ExpectedHexDigitOrCloseBrace,
+                    ),
+                    location: SrcSpan {
+                        start: self.get_pos() - 1,
+                        end: self.get_pos(),
+                    },
+                });
+            }
+
+            let _ = self.next_char(); // consume '}'
+
+            if !(1..=6).contains(&hex_digits.len()) {
+                return Err(LexicalError {
+                    error: LexicalErrorType::InvalidUnicodeEscape(
+                        InvalidUnicodeEscapeError::InvalidNumberOfHexDigits,
+                    ),
+                    location: SrcSpan {
+                        start: slash_pos,
+                        end: self.get_pos(),
+                    },
+                });
+            }
+
+            // Validate the Unicode codepoint
+            if char::from_u32(u32::from_str_radix(&hex_digits, 16).expect(
+                "Cannot parse codepoint number in Unicode escape sequence",
+            ))
+                .is_none()
+            {
+                return Err(LexicalError {
+                    error: LexicalErrorType::InvalidUnicodeEscape(
+                        InvalidUnicodeEscapeError::InvalidCodepoint,
+                    ),
+                    location: SrcSpan {
+                        start: slash_pos,
+                        end: self.get_pos(),
+                    },
+                });
+            }
+
+            Ok(format!("\\u{{{}}}", hex_digits))
         }
-        let end_pos = self.get_pos();
 
-        let tok = Token::String {
-            value: string_content.into(),
-        };
+        // Helper function to handle escape sequences for regular strings
+        fn lex_regular_string_escape(&mut self, c: char) -> String {
+            let _ = self.next_char();
+            let mut result = String::new();
+            result.push('\\');
+            result.push(c);
+            result
+        }
 
-        Ok((start_pos, tok, end_pos))
-    }
+        fn lex_string(&mut self) -> LexResult {
+            let start_pos = self.get_pos();
+            // advance past the first quote
+            let _ = self.next_char();
+            let mut string_content = String::new();
+
+            loop {
+                match self.next_char() {
+                    Some('\\') => {
+                        let slash_pos = self.get_pos() - 1;
+                        if let Some(c) = self.chr0 {
+                            match c {
+                                'f' | 'n' | 'r' | 't' | '"' | '\\' => {
+                                    string_content.push_str(&self.lex_regular_string_escape(c));
+                                }
+                                'u' => {
+                                    let unicode_escape = self.lex_unicode_escape(slash_pos)?;
+                                    string_content.push_str(&unicode_escape);
+                                }
+                                _ => {
+                                    return Err(LexicalError {
+                                        error: LexicalErrorType::BadStringEscape,
+                                        location: SrcSpan {
+                                            start: slash_pos,
+                                            end: slash_pos + 1,
+                                        },
+                                    });
+                                }
+                            }
+                        } else {
+                            return Err(LexicalError {
+                                error: LexicalErrorType::BadStringEscape,
+                                location: SrcSpan {
+                                    start: slash_pos,
+                                    end: slash_pos,
+                                },
+                            });
+                        }
+                    }
+                    Some('"') => break,
+                    Some(c) => string_content.push(c),
+                    None => {
+                        return Err(LexicalError {
+                            error: LexicalErrorType::UnexpectedStringEnd,
+                            location: SrcSpan {
+                                start: start_pos,
+                                end: start_pos,
+                            },
+                        });
+                    }
+                }
+            }
+            let end_pos = self.get_pos();
+
+            let tok = Token::String {
+                value: string_content.into(),
+            };
+
+            Ok((start_pos, tok, end_pos))
+        }
+
+        fn lex_multiline_string(&mut self) -> LexResult {
+            let start_pos = self.get_pos();
+
+            // Consume the first three quotes
+            let _ = self.next_char(); // First "
+            let _ = self.next_char(); // Second "
+            let _ = self.next_char(); // Third "
+
+            let mut string_content = String::new();
+
+            loop {
+                match self.chr0 {
+                    Some('"') => {
+                        // Check if this is the end (three consecutive quotes)
+                        if self.chr1 == Some('"') && self.chr2 == Some('"') {
+                            // Consume the closing triple quotes
+                            let _ = self.next_char(); // First closing "
+                            let _ = self.next_char(); // Second closing "
+                            let _ = self.next_char(); // Third closing "
+                            break;
+                        } else {
+                            // Single quote inside multiline string - escape it
+                            string_content.push('"');
+                            let _ = self.next_char();
+                        }
+                    }
+                    Some('\\') => {
+                        // Process escape sequences
+                        let slash_pos = self.get_pos();
+                        let _ = self.next_char();
+
+                        if let Some(c) = self.chr0 {
+                            match c {
+                                'u' => {
+                                    let unicode_escape = self.lex_unicode_escape(slash_pos)?;
+                                    string_content.push_str(&unicode_escape);
+                                }
+                                _ => {
+                                    return Err(LexicalError {
+                                        error: LexicalErrorType::BadStringEscape,
+                                        location: SrcSpan {
+                                            start: slash_pos,
+                                            end: slash_pos + 1,
+                                        },
+                                    });
+                                }
+                            }
+                        } else {
+                            return Err(LexicalError {
+                                error: LexicalErrorType::BadStringEscape,
+                                location: SrcSpan {
+                                    start: slash_pos,
+                                    end: slash_pos,
+                                },
+                            });
+                        }
+                    }
+                    Some(c) => {
+                        let _ = self.next_char();
+                        string_content.push(c);
+                    }
+                    None => {
+                        return Err(LexicalError {
+                            error: LexicalErrorType::UnexpectedStringEnd,
+                            location: SrcSpan {
+                                start: start_pos,
+                                end: self.get_pos(),
+                            },
+                        });
+                    }
+                }
+            }
+
+            let end_pos = self.get_pos();
+
+            let tok = Token::MultilineString {
+                value: string_content.into(),
+            };
+
+            Ok((start_pos, tok, end_pos))
+        }
 
     fn is_name_start(&self, c: char) -> bool {
         matches!(c, '_' | 'a'..='z')
@@ -922,18 +1023,21 @@ where
         let nxt = match self.chars.next() {
             Some((loc, c)) => {
                 self.loc0 = self.loc1;
-                self.loc1 = loc;
+                self.loc1 = self.loc2;
+                self.loc2 = loc;
                 Some(c)
             }
             None => {
                 // EOF needs a single advance
                 self.loc0 = self.loc1;
-                self.loc1 += 1;
+                self.loc1 = self.loc2;
+                self.loc2 += 1;
                 None
             }
         };
         self.chr0 = self.chr1;
-        self.chr1 = nxt;
+        self.chr1 = self.chr2;
+        self.chr2 = nxt;
         c
     }
 

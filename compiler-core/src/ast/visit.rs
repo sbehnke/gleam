@@ -125,6 +125,15 @@ pub trait Visit<'ast> {
         visit_typed_expr_string(self, location, type_, value);
     }
 
+    fn visit_typed_expr_multiline_string(
+        &mut self,
+        location: &'ast SrcSpan,
+        type_: &'ast Arc<Type>,
+        value: &'ast EcoString,
+    ) {
+        visit_typed_expr_multiline_string(self, location, type_, value);
+    }
+
     fn visit_typed_expr_block(
         &mut self,
         location: &'ast SrcSpan,
@@ -433,6 +442,10 @@ pub trait Visit<'ast> {
 
     fn visit_typed_pattern_string(&mut self, location: &'ast SrcSpan, value: &'ast EcoString) {
         visit_typed_pattern_string(self, location, value);
+    }
+
+    fn visit_typed_pattern_multiline_string(&mut self, location: &'ast SrcSpan, value: &'ast EcoString) {
+        visit_typed_pattern_multiline_string(self, location, value);
     }
 
     fn visit_typed_pattern_variable(
@@ -754,6 +767,11 @@ where
             type_,
             value,
         } => v.visit_typed_expr_string(location, type_, value),
+        TypedExpr::MultilineString {
+            location,
+            type_,
+            value,
+        } => v.visit_typed_expr_multiline_string(location, type_, value),
         TypedExpr::Block {
             location,
             statements,
@@ -906,6 +924,16 @@ pub fn visit_typed_expr_float<'a, V>(
 }
 
 pub fn visit_typed_expr_string<'a, V>(
+    _v: &mut V,
+    _location: &'a SrcSpan,
+    _type_: &'a Arc<Type>,
+    _value: &'a EcoString,
+) where
+    V: Visit<'a> + ?Sized,
+{
+}
+
+pub fn visit_typed_expr_multiline_string<'a, V>(
     _v: &mut V,
     _location: &'a SrcSpan,
     _type_: &'a Arc<Type>,
@@ -1514,6 +1542,7 @@ where
         } => v.visit_typed_pattern_int(location, value),
         Pattern::Float { location, value } => v.visit_typed_pattern_float(location, value),
         Pattern::String { location, value } => v.visit_typed_pattern_string(location, value),
+        Pattern::MultilineString { location, value } => v.visit_typed_pattern_multiline_string(location, value),
         Pattern::Variable {
             location,
             name,
@@ -1592,6 +1621,12 @@ where
 }
 
 pub fn visit_typed_pattern_string<'a, V>(_v: &mut V, _location: &'a SrcSpan, _value: &'a EcoString)
+where
+    V: Visit<'a> + ?Sized,
+{
+}
+
+pub fn visit_typed_pattern_multiline_string<'a, V>(_v: &mut V, _location: &'a SrcSpan, _value: &'a EcoString)
 where
     V: Visit<'a> + ?Sized,
 {

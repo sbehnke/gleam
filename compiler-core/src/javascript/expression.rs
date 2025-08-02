@@ -280,6 +280,8 @@ impl<'module, 'a> Generator<'module, 'a> {
         let document = match expression {
             TypedExpr::String { value, .. } => string(value),
 
+            TypedExpr::MultilineString { value, .. } => string(value),
+
             TypedExpr::Int { value, .. } => int(value),
             TypedExpr::Float { value, .. } => float(value),
 
@@ -1707,6 +1709,7 @@ impl<'module, 'a> Generator<'module, 'a> {
             Constant::Int { value, .. } => int(value),
             Constant::Float { value, .. } => float(value),
             Constant::String { value, .. } => string(value),
+            Constant::MultilineString { value, .. } => string(value),
             Constant::Tuple { elements, .. } => array(
                 elements
                     .iter()
@@ -2415,6 +2418,7 @@ impl TypedExpr {
             TypedExpr::Int { .. }
             | TypedExpr::Float { .. }
             | TypedExpr::String { .. }
+            | TypedExpr::MultilineString { .. }
             | TypedExpr::Var { .. }
             | TypedExpr::Fn { .. }
             | TypedExpr::List { .. }
@@ -2475,6 +2479,7 @@ fn requires_semicolon(statement: &TypedStatement) -> bool {
             | TypedExpr::Echo { .. }
             | TypedExpr::Float { .. }
             | TypedExpr::String { .. }
+            | TypedExpr::MultilineString { .. }
             | TypedExpr::BinOp { .. }
             | TypedExpr::Tuple { .. }
             | TypedExpr::NegateInt { .. }

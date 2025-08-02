@@ -30,6 +30,12 @@ pub enum TypedExpr {
         value: EcoString,
     },
 
+    MultilineString {
+        location: SrcSpan,
+        type_: Arc<Type>,
+        value: EcoString,
+    },
+
     Block {
         location: SrcSpan,
         statements: Vec1<TypedStatement>,
@@ -211,6 +217,7 @@ impl TypedExpr {
             | Self::Int { .. }
             | Self::Float { .. }
             | Self::String { .. }
+            | Self::MultilineString { .. }
             | Self::Invalid { .. } => self.self_if_contains_location(byte_index),
 
             Self::ModuleSelect {
@@ -416,6 +423,7 @@ impl TypedExpr {
             | Self::Int { .. }
             | Self::Float { .. }
             | Self::String { .. }
+            | Self::MultilineString { .. }
             | Self::ModuleSelect { .. }
             | Self::Invalid { .. } => None,
 
@@ -611,6 +619,7 @@ impl TypedExpr {
             | Self::Panic { location, .. }
             | Self::Block { location, .. }
             | Self::String { location, .. }
+            | Self::MultilineString { location, .. }
             | Self::NegateBool { location, .. }
             | Self::NegateInt { location, .. }
             | Self::Pipeline { location, .. }
@@ -637,6 +646,7 @@ impl TypedExpr {
             | Self::BinOp { location, .. }
             | Self::Tuple { location, .. }
             | Self::String { location, .. }
+            | Self::MultilineString { location, .. }
             | Self::Panic { location, .. }
             | Self::NegateBool { location, .. }
             | Self::NegateInt { location, .. }
@@ -667,6 +677,7 @@ impl TypedExpr {
             | TypedExpr::NegateBool { .. }
             | TypedExpr::NegateInt { .. }
             | TypedExpr::String { .. }
+            | TypedExpr::MultilineString { .. }
             | TypedExpr::Block { .. }
             | TypedExpr::Pipeline { .. }
             | TypedExpr::BitArray { .. }
@@ -710,6 +721,7 @@ impl TypedExpr {
             | Self::BinOp { type_, .. }
             | Self::Tuple { type_, .. }
             | Self::String { type_, .. }
+            | Self::MultilineString { type_, .. }
             | Self::BitArray { type_, .. }
             | Self::TupleIndex { type_, .. }
             | Self::ModuleSelect { type_, .. }
@@ -789,6 +801,7 @@ impl TypedExpr {
             TypedExpr::Int { .. }
             | TypedExpr::Float { .. }
             | TypedExpr::String { .. }
+            | TypedExpr::MultilineString { .. }
             | TypedExpr::Block { .. }
             | TypedExpr::Pipeline { .. }
             | TypedExpr::Fn { .. }
@@ -837,6 +850,7 @@ impl TypedExpr {
             TypedExpr::Int { .. }
             | TypedExpr::Float { .. }
             | TypedExpr::String { .. }
+            | TypedExpr::MultilineString { .. }
             | TypedExpr::List { .. }
             | TypedExpr::Tuple { .. }
             | TypedExpr::BitArray { .. }
@@ -958,6 +972,7 @@ impl TypedExpr {
             TypedExpr::Int { .. }
             | TypedExpr::Float { .. }
             | TypedExpr::String { .. }
+            | TypedExpr::MultilineString { .. }
             | TypedExpr::List { .. }
             | TypedExpr::BinOp { .. }
             | TypedExpr::Tuple { .. }
@@ -1057,6 +1072,7 @@ impl TypedExpr {
             TypedExpr::Int { location, .. }
             | TypedExpr::Float { location, .. }
             | TypedExpr::String { location, .. }
+            | TypedExpr::MultilineString { location, .. }
             | TypedExpr::Var { location, .. }
             | TypedExpr::List { location, .. }
             | TypedExpr::Call { location, .. }
@@ -1086,6 +1102,7 @@ impl TypedExpr {
             TypedExpr::Int { .. }
             | TypedExpr::Float { .. }
             | TypedExpr::String { .. }
+            | TypedExpr::MultilineString { .. }
             | TypedExpr::Block { .. }
             | TypedExpr::Pipeline { .. }
             | TypedExpr::Fn { .. }

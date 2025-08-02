@@ -456,6 +456,15 @@ impl<'comments> Formatter<'comments> {
         }
     }
 
+    fn multiline_string<'a>(&self, string: &'a EcoString) -> Document<'a> {
+        // Don't use surround() which would escape - build the document manually
+        concat(vec![
+            "\"\"\"".to_doc(),
+            string.to_doc(), // This preserves the literal content
+            "\"\"\"".to_doc(),
+        ]).force_break()
+    }
+
     fn const_expr<'a, A, B>(&mut self, value: &'a Constant<A, B>) -> Document<'a> {
         let comments = self.pop_comments(value.location().start);
         let document = match value {
@@ -464,6 +473,7 @@ impl<'comments> Formatter<'comments> {
             Constant::Float { value, .. } => self.float(value),
 
             Constant::String { value, .. } => self.string(value),
+            Constant::MultilineString { value, .. } => self.multiline_string(value),
 
             Constant::List {
                 elements, location, ..
@@ -1005,6 +1015,8 @@ impl<'comments> Formatter<'comments> {
 
             UntypedExpr::String { value, .. } => self.string(value),
 
+            UntypedExpr::MultilineString { value, .. } => self.multiline_string(value),
+
             UntypedExpr::Block {
                 statements,
                 location,
@@ -1261,6 +1273,7 @@ impl<'comments> Formatter<'comments> {
             | UntypedExpr::Int { .. }
             | UntypedExpr::Float { .. }
             | UntypedExpr::String { .. }
+            | UntypedExpr::MultilineString { .. }
             | UntypedExpr::Block { .. }
             | UntypedExpr::Var { .. }
             | UntypedExpr::Fn { .. }
@@ -2245,6 +2258,8 @@ impl<'comments> Formatter<'comments> {
 
             Pattern::String { value, .. } => self.string(value),
 
+            Pattern::MultilineString { value, .. } => self.string(value),
+
             Pattern::Variable { name, .. } => name.to_doc(),
 
             Pattern::BitArraySize(size) => self.bit_array_size(size),
@@ -2651,6 +2666,7 @@ impl<'comments> Formatter<'comments> {
             UntypedExpr::Int { .. }
             | UntypedExpr::Float { .. }
             | UntypedExpr::String { .. }
+            | UntypedExpr::MultilineString { .. }
             | UntypedExpr::Var { .. }
             | UntypedExpr::Fn { .. }
             | UntypedExpr::List { .. }
