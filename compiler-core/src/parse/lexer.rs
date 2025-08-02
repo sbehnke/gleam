@@ -834,7 +834,7 @@ where
                 });
             }
 
-            Ok(format!("\\u{{{}}}", hex_digits))
+         Ok(format!("\\u{{{hex_digits}}}"))
         }
 
         // Helper function to handle escape sequences for regular strings
